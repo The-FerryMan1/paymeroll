@@ -7,7 +7,7 @@ from app.models.attendance import Attendance
 from app.models.employee import Employee
 from app.models.payslip import Payslip
 from app.models.user import User
-from app.routes import r_attendance, r_employee
+from app.routes import r_attendance, r_employee, r_payslip
 
 Base.metadata.create_all(bind=engine)
 
@@ -15,6 +15,7 @@ app = FastAPI(title="Paymeroll API")
 
 app.include_router(r_employee.router)
 app.include_router(r_attendance.router)
+app.include_router(r_payslip.router)
 
 
 @app.get("/")
