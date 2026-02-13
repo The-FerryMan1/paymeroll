@@ -37,5 +37,22 @@ def generate_emp_payslip(db: Session, employee_id: int,  start: date, end: date,
     db.refresh(new_payslip)
     return new_payslip
 
+def get_payslip(db: Session, payslip_id: int):
+    return db.get(Payslip, payslip_id)
+
+def get_employee_payslips(db: Session, employee_id: int):
+    return db.query(Payslip).filter(Payslip.employee_id == employee_id).all()
+
+def get_all_payslips(db: Session):
+    return db.query(Payslip).all()
+
+def delete_payslip(db: Session, payslip_id: int):
+    payslip = db.get(Payslip, payslip_id)
+    if not payslip:
+        return None
+    db.delete(payslip)
+    db.commit()
+    return payslip
+
     
-    
+     
