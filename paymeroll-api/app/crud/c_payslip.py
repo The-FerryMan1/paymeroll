@@ -1,14 +1,16 @@
 
 from datetime import date
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.payslip import Payslip
 from app.services.v_payslip import calculate_deductions
 from app.models.employee import Employee
+from sqlalchemy.orm import joinedload
+from sqlalchemy import select
 
 
 # creator_id: int,
-def generate_emp_payslip(db: Session, employee_id: int,  start: date, end: date, payout: date):
-    emp = db.get(Employee, employee_id)
+async def generate_emp_payslip(db: AsyncSession, employee_id: int,  start: date, end: date, payout: date):
+    emp = await db.get(Employee, employee_id)
     if not emp: return None
 
     (gross_pay, sss_ee, sss_er, 
@@ -33,25 +35,30 @@ def generate_emp_payslip(db: Session, employee_id: int,  start: date, end: date,
     )
 
     db.add(new_payslip)
-    db.commit()
-    db.refresh(new_payslip)
+    await db.commit()
+    await db.refresh(new_payslip)
     return new_payslip
 
-def get_payslip(db: Session, payslip_id: int):
-    return db.get(Payslip, payslip_id)
+async def get_payslip(db: AsyncSession, payslip_id: int):
+    return await db.get(Payslip, payslip_id)
 
-def get_employee_payslips(db: Session, employee_id: int):
-    return db.query(Payslip).filter(Payslip.employee_id == employee_id).all()
+async def get_employee_payslips(db: AsyncSession, employee_id: int):
+    smts = await db.execute(
+        select(Payslip).options(joinedload(Payslip.employee)).where(Payslip.employee_id == employee_id)
+    )
+    return smts.unique().scalars().all()
 
-def get_all_payslips(db: Session):
-    return db.query(Payslip).all()
+async def get_all_payslips(db: AsyncSession):
+    stmt = await db.execute(select(Payslip))
+    return stmt.scalars().all()
 
-def delete_payslip(db: Session, payslip_id: int):
-    payslip = db.get(Payslip, payslip_id)
+
+async def delete_payslip(db: AsyncSession, payslip_id: int):
+    payslip = await db.get(Payslip, payslip_id)
     if not payslip:
         return None
-    db.delete(payslip)
-    db.commit()
+    await db.delete(payslip)
+    await db.commit()
     return payslip
 
     

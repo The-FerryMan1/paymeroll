@@ -2,6 +2,13 @@
 **/__pycache__/
 **/.venv/
 **/env/
+**/venv/
+*.env
+*.venv
+**/.db
+# Database
+**/*.sqlite3
+**/*.db
 .pytest_cache/
 *.pyc
 

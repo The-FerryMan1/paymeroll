@@ -1,5 +1,5 @@
 from datetime import time
-from typing import SupportsFloat
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from fastapi import HTTPException
 from sqlalchemy import and_, select, update
@@ -37,7 +37,7 @@ def calc_attendance_metric(time_in: time | None, time_out: time | None):
     return late, ut, ot
 
 
-def create_attendance(db: Session, attendance_in: AttendanceCreate):
+async def create_attendance(db: AsyncSession, attendance_in: AttendanceCreate):
 
     employee = get_employee(db, attendance_in.employee_id)
 
@@ -46,13 +46,13 @@ def create_attendance(db: Session, attendance_in: AttendanceCreate):
             status_code=HTTP_404_NOT_FOUND,
             detail=f"Employee with an ID of {attendance_in.employee_id} does not exists",
         )
-    existing_record = db.execute(
+    existing_record = await db.execute(
         select(Attendance).where(
             Attendance.employee_id == attendance_in.employee_id,
             Attendance.work_date == attendance_in.work_date,
         )
-    ).scalar_one_or_none()
-    print(existing_record)
+    )
+    existing_record = existing_record.scalar_one_or_none()
 
     if existing_record:
         raise HTTPException(
@@ -70,21 +70,21 @@ def create_attendance(db: Session, attendance_in: AttendanceCreate):
     )
 
     db.add(db_attendance)
-    db.commit()
-    db.refresh(db_attendance)
+    await db.commit()
+    await db.refresh(db_attendance)
     return db_attendance
 
 
-def get_all_attendance(db: Session, skip: int, limit: int):
-    stmt = db.query(Attendance).offset(skip).limit(limit).all()
-    return stmt
+async def get_all_attendance(db: AsyncSession, skip: int, limit: int):
+    stmt = await db.execute(select(Attendance).offset(skip).limit(limit))
+    return stmt.scalars().all()
 
 
-def get_attendance(db: Session, attendance_id: int):
-    stmt = db.execute(
+async def get_attendance(db: AsyncSession, attendance_id: int):
+    stmt = await db.execute(
         select(Attendance).where(Attendance.id == attendance_id)
-    ).scalar_one_or_none()
-
+    )
+    stmt = stmt.scalar_one_or_none()
     if not stmt:
         raise HTTPException(
             status_code=HTTP_404_NOT_FOUND,
@@ -94,9 +94,9 @@ def get_attendance(db: Session, attendance_id: int):
     return stmt
 
 
-def get_emp_attendances(db: Session, employee_id: int):
+async def get_emp_attendances(db: AsyncSession, employee_id: int):
 
-    employee = get_employee(db, employee_id)
+    employee = await get_employee(db, employee_id)
 
     if not employee:
         raise HTTPException(
@@ -104,18 +104,17 @@ def get_emp_attendances(db: Session, employee_id: int):
             detail=f"Employee with an ID of {employee_id} does not exists",
         )
 
-    stmt = (
+    stmt = await (
         db.execute(select(Attendance).where(Attendance.employee_id == employee_id))
-        .scalars()
-        .all()
     )
-
+    stmt = stmt.scalars().all()
     return stmt
 
 
-def update_clock_out(db: Session, attendance_id: int, time_out: time):
+async def update_clock_out(db: AsyncSession, attendance_id: int, time_out: time):
 
-    db_attendance = db.query(Attendance).filter(Attendance.id == attendance_id).first()
+    db_attendance = await db.execute(select(Attendance).where(Attendance.id == attendance_id))
+    db_attendance = db_attendance.scalar_one_or_none()
     print(db_attendance)
 
     if db_attendance:
@@ -127,19 +126,19 @@ def update_clock_out(db: Session, attendance_id: int, time_out: time):
         db_attendance.minutes_undertime = ut
         db_attendance.overtime_hours = ot
 
-        db.commit()
-        db.refresh(db_attendance)
+        await db.commit()
+        await db.refresh(db_attendance)
     return db_attendance
 
 
-def delete_attendance(db: Session, attendance_id: int):
-    attendance = get_attendance(db, attendance_id)
+async def delete_attendance(db: AsyncSession, attendance_id: int):
+    attendance = await get_attendance(db, attendance_id)
 
     if not attendance:
         raise HTTPException(
             status_code=HTTP_404_NOT_FOUND,
             detail=f"Attendance with an ID of {attendance_id} does not exists",
         )
-    db.delete(attendance)
-    db.commit()
+    await db.delete(attendance)
+    await db.commit()
     return True
