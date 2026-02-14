@@ -9,7 +9,7 @@ from app.models.employee import Employee
 from app.models.attendance import Attendance
 from app.models.payslip import Payslip
 from app.models.user import User
-from app.routes import r_attendance, r_employee, r_payslip
+from app.routes import r_attendance, r_employee, r_payslip, r_auth
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -38,6 +38,7 @@ app.add_middleware(
 app.include_router(r_employee.router)
 app.include_router(r_attendance.router)
 app.include_router(r_payslip.router)
+app.include_router(r_auth.router)
 
 
 @app.get("/")
