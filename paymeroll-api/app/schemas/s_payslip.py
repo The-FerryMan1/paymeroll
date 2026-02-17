@@ -1,5 +1,5 @@
-
 from datetime import date, datetime
+
 from pydantic import BaseModel, ConfigDict
 
 
@@ -9,9 +9,11 @@ class PayslipBase(BaseModel):
     period_start: date
     period_end: date
 
+
 class PayslipCreate(PayslipBase):
     pass
     # created_by_id: int
+
 
 class PayslipResponse(PayslipBase):
     id: int
@@ -24,5 +26,3 @@ class PayslipResponse(PayslipBase):
     withholding_tax: float
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
-
-

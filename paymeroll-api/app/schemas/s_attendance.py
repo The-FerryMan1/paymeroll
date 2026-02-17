@@ -1,6 +1,7 @@
 from datetime import date, datetime, time
 from typing import Optional
-from pydantic import BaseModel, ConfigDict, field_validator, model_validator
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class AttendanceBase(BaseModel):
@@ -27,8 +28,23 @@ class AttendanceResponse(AttendanceBase):
         return v
 
 
-class AttendanceCreate(AttendanceBase):
-    pass
+class AttendanceCreate(BaseModel):
+    employee_id: int
+    work_date: date = Field(default_factory=date.today)
+    time_in: Optional[time] = None
+    time_out: Optional[time] = None
+    status: str = "PRESENT"
+
+    @field_validator("time_out", mode="before")
+    @classmethod
+    def parse_time_properly(cls, v):
+        if isinstance(v, str):
+            try:
+                return time.fromisoformat(v)
+            except ValueError:
+                v = v.replace("Z", "+00:00")
+                return datetime.fromisoformat(v).time().replace(tzinfo=None)
+        return v
 
 
 class AttendanceUpdate(BaseModel):

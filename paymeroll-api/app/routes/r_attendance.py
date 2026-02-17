@@ -5,6 +5,7 @@ from fastapi.routing import APIRouter
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.status import HTTP_200_OK, HTTP_201_CREATED, HTTP_204_NO_CONTENT
 
+from app.core.auth import admin_check
 from app.crud import c_attendance
 from app.dependencies import get_db
 from app.schemas.s_attendance import (
@@ -16,14 +17,24 @@ from app.schemas.s_attendance import (
 router = APIRouter(prefix="/attendance", tags=["Attendance"])
 
 
-@router.post("/", response_model=AttendanceResponse, status_code=HTTP_201_CREATED)
+@router.post(
+    "/",
+    dependencies=[Depends(admin_check)],
+    response_model=AttendanceResponse,
+    status_code=HTTP_201_CREATED,
+)
 async def create_attendance(
     attendance: AttendanceCreate, db: AsyncSession = Depends(get_db.getDB)
 ):
-    return c_attendance.create_attendance(db, attendance)
+    result = await c_attendance.create_attendance(db, attendance)
+    return result
 
 
-@router.get("/", response_model=List[AttendanceResponse], status_code=HTTP_200_OK)
+@router.get(
+    "/",
+    response_model=List[AttendanceResponse],
+    status_code=HTTP_200_OK,
+)
 async def get_all_attendances(
     skip: int = 0,
     limit: int = 100,
@@ -57,7 +68,10 @@ async def get_emp_attendance(
 
 
 @router.put(
-    "/{attendance_id}", response_model=AttendanceResponse, status_code=HTTP_200_OK
+    "/{attendance_id}",
+    response_model=AttendanceResponse,
+    status_code=HTTP_200_OK,
+    dependencies=[Depends(admin_check)],
 )
 async def update_attendance(
     attendance_id: Annotated[int, Path(title="Attendance ID")],
@@ -67,7 +81,11 @@ async def update_attendance(
     return await c_attendance.update_clock_out(db, attendance_id, time_out.time_out)
 
 
-@router.delete("/{attendance_id}", status_code=HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{attendance_id}",
+    status_code=HTTP_204_NO_CONTENT,
+    dependencies=[Depends(admin_check)],
+)
 async def delete_attendance(
     attendance_id: Annotated[int, Path(title="Attendance ID")],
     db: AsyncSession = Depends(get_db.getDB),

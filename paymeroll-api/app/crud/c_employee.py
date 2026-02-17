@@ -8,14 +8,12 @@ from app.schemas.s_employee import CreateEmployee, UpdateEmployee
 
 
 async def get_all_employee(db: AsyncSession, skip: int = 0, limit: int = 50):
-    result =  await db.execute(select(Employee).offset(skip).limit(limit))
+    result = await db.execute(select(Employee).offset(skip).limit(limit))
     return result.scalars().all()
 
 
 async def get_employee(db: AsyncSession, employee_id: int):
-    stmt = await db.execute(
-        select(Employee).where(Employee.id == employee_id)
-    )
+    stmt = await db.execute(select(Employee).where(Employee.id == employee_id))
 
     emp = stmt.scalar_one_or_none()
     if not emp:
@@ -23,7 +21,7 @@ async def get_employee(db: AsyncSession, employee_id: int):
             status_code=HTTP_404_NOT_FOUND,
             detail=f"Employee with the ID of {employee_id} does not exists.",
         )
-    return stmt.scalar_one_or_none()
+    return emp
 
 
 async def create_employee(db: AsyncSession, employee: CreateEmployee):
@@ -53,8 +51,10 @@ async def create_employee(db: AsyncSession, employee: CreateEmployee):
     return stmt
 
 
-async def update_employee(db: AsyncSession, employee_id: int, employee_data: UpdateEmployee):
-    update_data =  employee_data.model_dump(exclude_unset=True)
+async def update_employee(
+    db: AsyncSession, employee_id: int, employee_data: UpdateEmployee
+):
+    update_data = employee_data.model_dump(exclude_unset=True)
 
     check = await db.execute(
         select(Employee).where(
@@ -83,7 +83,7 @@ async def update_employee(db: AsyncSession, employee_id: int, employee_data: Upd
             update(Employee).where(Employee.id == employee_id).values(**update_data)
         )
         await db.commit()
-    return  await get_employee(db, employee_id)
+    return await get_employee(db, employee_id)
 
 
 async def delete_employee(db: AsyncSession, employee_id: int):

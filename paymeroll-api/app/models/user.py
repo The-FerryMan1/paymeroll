@@ -24,8 +24,7 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True)
     contact_no: Mapped[str] = mapped_column()
     hashed_password: Mapped[str] = mapped_column(nullable=False)
-    role: Mapped[str] = mapped_column(default="ADMIN")
+    role: Mapped[str] = mapped_column(default="viewer")
     is_active: Mapped[bool] = mapped_column(default=True)
-
 
     processed_payslips: Mapped[List["Payslip"]] = relationship(back_populates="creator")

@@ -1,21 +1,46 @@
+import io
+from datetime import date, datetime
+from typing import Annotated
 
-from datetime import date
+import pandas as pd
+from fastapi import Depends, HTTPException
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
+from starlette import status
+from starlette.responses import StreamingResponse
+
+from app.core.auth import CurrentUser
+from app.models.employee import Employee
 from app.models.payslip import Payslip
 from app.services.v_payslip import calculate_deductions
-from app.models.employee import Employee
-from sqlalchemy.orm import joinedload
-from sqlalchemy import select
 
 
 # creator_id: int,
-async def generate_emp_payslip(db: AsyncSession, employee_id: int,  start: date, end: date, payout: date):
+async def generate_emp_payslip(
+    db: AsyncSession,
+    employee_id: int,
+    created_by_id: int,
+    start: date,
+    end: date,
+    payout: date,
+):
     emp = await db.get(Employee, employee_id)
-    if not emp: return None
+    if not emp:
+        return None
 
-    (gross_pay, sss_ee, sss_er, 
-    ph_ee, ph_er, pagibig_ee, 
-    pagibig_er, taxable, tax, net_pay) = calculate_deductions(emp.base_rate)
+    (
+        gross_pay,
+        sss_ee,
+        sss_er,
+        ph_ee,
+        ph_er,
+        pagibig_ee,
+        pagibig_er,
+        taxable,
+        tax,
+        net_pay,
+    ) = calculate_deductions(emp.base_rate)
 
     new_payslip = Payslip(
         employee_id=employee_id,
@@ -31,7 +56,7 @@ async def generate_emp_payslip(db: AsyncSession, employee_id: int,  start: date,
         philhealth_er=round(ph_er, 2),
         pagibig_ee=round(pagibig_ee, 2),
         pagibig_er=round(pagibig_er, 2),
-        withholding_tax=round(tax, 2)
+        withholding_tax=round(tax, 2),
     )
 
     db.add(new_payslip)
@@ -39,14 +64,19 @@ async def generate_emp_payslip(db: AsyncSession, employee_id: int,  start: date,
     await db.refresh(new_payslip)
     return new_payslip
 
+
 async def get_payslip(db: AsyncSession, payslip_id: int):
     return await db.get(Payslip, payslip_id)
 
+
 async def get_employee_payslips(db: AsyncSession, employee_id: int):
     smts = await db.execute(
-        select(Payslip).options(joinedload(Payslip.employee)).where(Payslip.employee_id == employee_id)
+        select(Payslip)
+        .options(joinedload(Payslip.employee))
+        .where(Payslip.employee_id == employee_id)
     )
     return smts.unique().scalars().all()
+
 
 async def get_all_payslips(db: AsyncSession):
     stmt = await db.execute(select(Payslip))
@@ -61,5 +91,29 @@ async def delete_payslip(db: AsyncSession, payslip_id: int):
     await db.commit()
     return payslip
 
-    
-     
+
+async def generate_csv_payslip(db: AsyncSession, payslip_id: int):
+    stmt = await db.execute(select(Payslip).where(Payslip.id == payslip_id))
+
+    payslip = stmt.scalar_one_or_none()
+
+    if not payslip:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Payslip not found!"
+        )
+
+    data = {c.name: getattr(payslip, c.name) for c in payslip.__table__.columns}
+
+    df = pd.DataFrame([data])  # Notice the brackets []
+    stream = io.StringIO()
+
+    df.to_csv(stream, index=False)
+    stream.seek(0)
+
+    return StreamingResponse(
+        iter([stream.getvalue()]),
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": f"attachment; filename={datetime.now()}-{payslip_id}.csv"
+        },
+    )

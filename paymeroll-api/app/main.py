@@ -1,26 +1,32 @@
+from contextlib import asynccontextmanager
+
 from fastapi import Depends, FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from contextlib import asynccontextmanager
-from fastapi.middleware.cors import CORSMiddleware
-from app.core.database import Base, engine
+from app.core.database import AsyncSessionLocal, Base, engine, seed_data
 from app.dependencies.get_db import getDB
-from app.models.employee import Employee
 from app.models.attendance import Attendance
+from app.models.employee import Employee
 from app.models.payslip import Payslip
 from app.models.user import User
-from app.routes import r_attendance, r_employee, r_payslip, r_auth
+from app.routes import r_attendance, r_auth, r_employee, r_payslip
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Create tables on startup
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+    async with AsyncSessionLocal() as session:
+        await seed_data(session)
     yield
 
     await engine.dispose()
 
-app = FastAPI(title="Paymeroll API", lifespan=lifespan )
+
+app = FastAPI(title="Paymeroll API", lifespan=lifespan)
 
 origins = [
     "http://localhost",

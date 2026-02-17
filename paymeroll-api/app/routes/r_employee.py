@@ -4,11 +4,14 @@ from fastapi import APIRouter, Depends, Path
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.status import HTTP_200_OK, HTTP_201_CREATED, HTTP_204_NO_CONTENT
 
+from app.core.auth import admin_check
 from app.crud import c_employee
 from app.dependencies import get_db
 from app.schemas.s_employee import CreateEmployee, Employee, UpdateEmployee
 
-router = APIRouter(prefix="/employee", tags=["employee"])
+router = APIRouter(
+    prefix="/employee", tags=["employee"], dependencies=[Depends(admin_check)]
+)
 
 
 @router.get("/", response_model=List[Employee])

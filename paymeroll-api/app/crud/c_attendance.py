@@ -1,8 +1,8 @@
 from datetime import time
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from fastapi import HTTPException
 from sqlalchemy import and_, select, update
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 from starlette.status import HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND
 
@@ -30,7 +30,7 @@ def calc_attendance_metric(time_in: time | None, time_out: time | None):
     if time_in > start_shift:
         late = to_mins(time_in) - to_mins(start_shift)
     if time_out < end_shift:
-        ut = to_mins(time_out) - to_mins(end_shift)
+        ut = to_mins(end_shift) - to_mins(time_out)
     if time_out > end_shift:
         ot_mins = to_mins(time_out) - to_mins(end_shift)
         ot = round(ot_mins / 60, 2)
@@ -39,7 +39,7 @@ def calc_attendance_metric(time_in: time | None, time_out: time | None):
 
 async def create_attendance(db: AsyncSession, attendance_in: AttendanceCreate):
 
-    employee = get_employee(db, attendance_in.employee_id)
+    employee = await get_employee(db, attendance_in.employee_id)
 
     if not employee:
         raise HTTPException(
@@ -81,9 +81,7 @@ async def get_all_attendance(db: AsyncSession, skip: int, limit: int):
 
 
 async def get_attendance(db: AsyncSession, attendance_id: int):
-    stmt = await db.execute(
-        select(Attendance).where(Attendance.id == attendance_id)
-    )
+    stmt = await db.execute(select(Attendance).where(Attendance.id == attendance_id))
     stmt = stmt.scalar_one_or_none()
     if not stmt:
         raise HTTPException(
@@ -104,8 +102,8 @@ async def get_emp_attendances(db: AsyncSession, employee_id: int):
             detail=f"Employee with an ID of {employee_id} does not exists",
         )
 
-    stmt = await (
-        db.execute(select(Attendance).where(Attendance.employee_id == employee_id))
+    stmt = await db.execute(
+        select(Attendance).where(Attendance.employee_id == employee_id)
     )
     stmt = stmt.scalars().all()
     return stmt
@@ -113,7 +111,9 @@ async def get_emp_attendances(db: AsyncSession, employee_id: int):
 
 async def update_clock_out(db: AsyncSession, attendance_id: int, time_out: time):
 
-    db_attendance = await db.execute(select(Attendance).where(Attendance.id == attendance_id))
+    db_attendance = await db.execute(
+        select(Attendance).where(Attendance.id == attendance_id)
+    )
     db_attendance = db_attendance.scalar_one_or_none()
     print(db_attendance)
 
