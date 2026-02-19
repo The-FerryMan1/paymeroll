@@ -3,13 +3,18 @@ import type { FormSubmitEvent } from "@nuxt/ui";
 import type { AxiosError } from "axios";
 import { defineStore } from "pinia";
 import { ref } from "vue";
+import { useRouter } from "vue-router";
 
 export const useAuthStore = defineStore("auth", () => {
   //user token
   const userToken = ref<string | null>(null);
+  const errorMessage = ref<string | null>(null)
+  const loading = ref<boolean>(false)
+
+  const router = useRouter()
   // login
   async function authLogin(form: FormData) {
-    console.log(form);
+    loading.value = true
     try {
       const { data } = await useAxios.post("/auth/login", form, {
         headers: {
@@ -18,19 +23,26 @@ export const useAuthStore = defineStore("auth", () => {
       });
 
       userToken.value = data.access_token;
+      localStorage.setItem("access_token", data.access_token)
+      errorMessage.value = null
+      router.push({name: 'dashboard'})
+      return 
     } catch (error) {
       const errMessage = error as AxiosError;
+       localStorage.removeItem("access_token")
       if(errMessage.status === 401){
-        console.log("Invalid username or password")
+        errorMessage.value = "Invalid username or password"
         return
       }
-
-      console.log(error);
+    }finally{
+      loading.value = false
     }
   }
 
   return {
     userToken,
     authLogin,
+    errorMessage,
+    loading
   };
 });

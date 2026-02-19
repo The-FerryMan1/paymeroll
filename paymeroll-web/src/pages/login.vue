@@ -14,14 +14,14 @@ const fields: AuthFormField[] = [
         type: "email",
         label: "Email",
         placeholder: "Enter your emeil",
-        required: true
+        required: true,
     },
     {
         name: "password",
         type: "password",
         label: "Password",
         placeholder: "Enter your password",
-        required: true
+        required: true,
     },
     {
         name: "remember",
@@ -43,12 +43,27 @@ async function onsubmit(event: FormSubmitEvent<Schema>) {
     form.append('username', event.data.email)
     form.append('password', event.data.password)
     await auth.authLogin(form)
+
+    if (auth.errorMessage) {
+        toast.add(
+            {
+                title: "Login Failed",
+                description: auth.errorMessage,
+                color: "error"
+            }
+        )
+        return
+    }
+
     toast.add(
         {
-            title: "Login Success",
+
+            title: "Login success",
             color: "success"
         }
     )
+
+
 }
 
 
@@ -58,17 +73,18 @@ async function onsubmit(event: FormSubmitEvent<Schema>) {
     <Default>
         <UPageHero orientation="horizontal" class="h-screen items-center flex">
             <template #title>
-                <h1 class="text-primary">Paymeroll.</h1>
+                <h1 class="text-primary w-full text-center">Paymeroll.</h1>
             </template>
 
             <template #description>
-                <h2>Payroll system for small enterprise.</h2>
+                <h2 class="text-neutral w-full text-center">Payroll system for small enterprise.</h2>
             </template>
 
             <template #default>
                 <UPageCard orientation="vertical">
-                    <UAuthForm @submit="onsubmit" :schema="schema" title="Welcome back!" icon="i-lucide-user"
-                        description="Enter your credentials to access your accoint" :fields="fields" />
+                    <UAuthForm @submit="onsubmit" :loading="auth.loading" :schema="schema" title="Welcome back!"
+                        icon="i-lucide-user" description="Enter your credentials to access your accoint"
+                        :fields="fields" />
                 </UPageCard>
             </template>
 
