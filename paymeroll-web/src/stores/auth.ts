@@ -8,6 +8,7 @@ import { useRouter } from "vue-router";
 export const useAuthStore = defineStore("auth", () => {
   //user token
   const userToken = ref<string | null>(null);
+  const userInfo = ref<Record<string, any>>({})
   const errorMessage = ref<string | null>(null)
   const loading = ref<boolean>(false)
 
@@ -39,8 +40,29 @@ export const useAuthStore = defineStore("auth", () => {
     }
   }
 
+  async function me() {
+      try {
+
+        loading.value = true
+        const {data} = await useAxios.get("/auth/me", {
+          headers: {
+            "Authorization" : `Bearer ${localStorage.getItem("access_token")}`
+          }
+        })
+        userInfo.value = data
+      } catch (error) {
+          const axiosErr = error as AxiosError
+          console.log(axiosErr)
+
+      }finally{ 
+        loading.value = false
+      }
+  }
+
   return {
     userToken,
+    me,
+    userInfo, 
     authLogin,
     errorMessage,
     loading

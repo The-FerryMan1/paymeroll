@@ -34,6 +34,7 @@ class UpdateEmployee(BaseModel):
 
 
 class Employee(EmployeeBase):
+    model_config = ConfigDict(from_attributes=True)
     id: int
     employee_no: str
-    model_config = ConfigDict(from_attributes=True)
+    

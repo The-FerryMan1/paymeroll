@@ -1,5 +1,6 @@
 import axios from "axios";
-import type { constants } from "fs";
+import { config } from "zod/v4/core";
+
 
 
 export const useAxios = axios.create({
@@ -8,4 +9,13 @@ export const useAxios = axios.create({
     headers: {
         "Content-Type": "application/json"
     }
+})
+
+useAxios.interceptors.request.use((config)=>{
+    const token = localStorage.getItem("access_token")
+
+    if(token){
+        config.headers.Authorization = `Bearer ${token}`
+    }
+    return config
 })
