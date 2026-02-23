@@ -82,7 +82,7 @@ async function onsubmit(event: FormSubmitEvent<Schema>) {
 
             <template #default>
                 <UPageCard orientation="vertical">
-                    <UAuthForm @submit="onsubmit" :loading="auth.loading" :schema="schema" title="Welcome back!"
+                    <UAuthForm @submit="onsubmit" :loading="!auth.loading" :schema="schema" title="Welcome back!"
                         icon="i-lucide-user" description="Enter your credentials to access your accoint"
                         :fields="fields" />
                 </UPageCard>

@@ -19,3 +19,12 @@ useAxios.interceptors.request.use((config)=>{
     }
     return config
 })
+
+useAxios.interceptors.response.use(res =>res, (error)=>{
+    if(error.response && error.response.status == 401){
+        localStorage.removeItem('access_token')
+        window.location.href = '/'
+    }
+
+    return Promise.reject(error)
+})

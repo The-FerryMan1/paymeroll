@@ -59,12 +59,33 @@ export const useAuthStore = defineStore("auth", () => {
       }
   }
 
+  async function authSignOut(){
+    const token = localStorage.getItem('access_token')
+    if(!token){
+        return 
+    }
+
+    try {
+      loading.value = false
+      localStorage.removeItem('access_token')
+      userToken.value = null
+      userInfo.value = {}
+      router.push('/')
+      return 
+    } catch (error) {
+        console.log(error)
+    }finally{
+      loading.value = true
+    }
+  }
+
   return {
     userToken,
     me,
     userInfo, 
     authLogin,
     errorMessage,
-    loading
+    loading,
+    authSignOut
   };
 });
